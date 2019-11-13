@@ -1,0 +1,131 @@
+---
+title: "Bios Methods Homework 4"
+author: "Alison Elgass"
+output: html_document
+---
+
+# Problems 1 & 2
+
+See hand-written scanned section to follow...
+\newpage
+
+```{r include=FALSE}
+library(tidyverse)
+library(readxl)
+library(faraway)
+library(broom)
+library(dplyr)
+```
+
+# Problem 3
+```{r}
+brain_data = read_excel(path = "./Brain.xlsx") %>% 
+  janitor::clean_names()
+
+plot(brain_data$glia_neuron_ratio, brain_data$ln_brain_mass, 
+     xlab = "ln brain mass", 
+     ylab = "glia-neuron ratio")
+
+nonhuman = brain_data %>% filter(species != "Homo sapiens")
+```
+
+### Part A - Regression
+```{r}
+brain_reg = lm(glia_neuron_ratio ~ ln_brain_mass, data = nonhuman)
+summary(brain_reg)
+```
+The regression equation is 	$\hat{Y}$ = 0.1637 + 0.18113**X~i~**
+
+### Part B - Prediction
+For humans, ln(brain mass) = 7.22, so the regression equation would predict a glia neuron ratio of 0.1637 + 0.18113(7.22) = 1.471  
+
+### Part C - Prediction Interval
+The most meaningful estimate would be a prediction interval rather than a confidence interval at the given brain mass.  
+
+### Part D - 95% Interval
+95% PI = $\hat{\beta}$~0~ + $\hat{\beta}$~1~X~h~ +- (t~n-2,1-$\alpha$/2)(se($\hat{\beta}$~0~ + $\hat{\beta}$~1~X~h~))  
+  
+where se = $\sqrt{}$ MSE ((1/n) + ((x~h~ - $\overline{x}$)/
+$\sum_{i=1}^{n}$ x~i~ - $\overline{x}$) + 1)  
+
+```{r}
+xh = 7.22
+predict.lm(brain_reg, data_frame(ln_brain_mass = xh),
+        interval = "predict", level = 0.95)
+```
+
+We find that our 95% prediction interval for the human glia-neuron ratio is (1.036, 1.907). The actual measured ratio is 1.65, which is within this range, so we conclude that humans are not abnormal compared to other primates.  
+  
+Since the human data point is somewhat of an outlier we should be cautious since the regression line might not accurately apply to a value of ln(brain mass) that is so high  
+
+# Problem 4
+```{r}
+heart_data = read_csv(file = "./HeartDisease.csv")
+summary(heart_data) %>% knitr::kable()
+```
+
+### Part A - Description
+The dataset contains data on 788 patients who made insurance claims for coronary heart disease. The main predictor is the number of ER visits, and the main outcome is total cost. Covariates include age, gender, number of complications, and condition duration.  
+
+### Part B - Total Cost
+Altering total cost to ln(totalcost) makes a more normal distribution
+```{r}
+hist(heart_data$totalcost)
+hist(log(heart_data$totalcost))
+```
+
+### Part C - Complications Factor
+```{r}
+new_heart = heart_data %>% 
+  filter(totalcost != 0) %>% 
+  mutate(  
+    #one 3 in row 79
+    compbin = factor(complications, 
+                     levels = c(0,1,3), labels = c(0,1,1)),
+    lncost = log(totalcost)
+  )
+  
+#str(new_heart$compbin)
+#new_heart$compbin
+```
+
+### Part D - SLR
+Note that in creating our `new_heart` dataset above, we also excluded 3 data points where cost was 0, since these will not work with a log transformation. This seems reasonable since these ER costs are likely missing or were not recorded by the insurance company, so they are not helpful for our regression analysis.
+```{r}
+slr_heart = lm(lncost ~ ERvisits, data = new_heart)
+plot(new_heart$ERvisits, new_heart$lncost, 
+     xlab = "# ER visits", 
+     ylab = "ln total cost")
+abline(slr_heart, lwd = 2, col = 2)
+
+summary(slr_heart)
+b1 = summary(slr_heart)$coefficients[2,1]
+```
+
+The regression equation is 	$\hat{Y}$ = 5.537 + 0.226**X~i~**  
+These results are highly significant, as a test of $\hat{\beta}$~1~ = 0 gives the test statistic 9.46 which is > t~785-2,1-0.95/2~ = `r qt(0.975,783)` so we conclude the slope is not 0.  
+Our estimated slope is 0.2267, meaning that for every 1 additional ER visit, we would predict an increase in ln(cost) of 0.2267 on average.  
+
+### Part E - MLR
+```{r}
+mlr_heart = lm(lncost ~ ERvisits + compbin, data = new_heart)
+summary(mlr_heart)
+```
+Using multiple linear regression, our regression equation is 	
+$\hat{Y}$ = 5.5211 + 0.2046**X~i1~** + 1.686**X~i2~**  
+where X~1~ = # ER visits, and X~2~ = whether patient experienced complications (reference category = 0, no complications)
+
+**i. testing compbin**
+```{r}
+anova(slr_heart) #SSR = 2459
+anova(mlr_heart) #SSR = 2347
+anova(slr_heart, mlr_heart)
+```
+Testing the effect of the complications variable (X~2~),  
+H~0~: $\beta$~2~ = 0   
+H~1~: $\beta$~2~ $\neq$ 0  
+
+### Part F - Final MLR
+  
+
+
