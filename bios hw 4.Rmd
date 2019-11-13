@@ -58,6 +58,7 @@ We find that our 95% prediction interval for the human glia-neuron ratio is (1.0
   
 Since the human data point is somewhat of an outlier we should be cautious since the regression line might not accurately apply to a value of ln(brain mass) that is so high  
 
+
 # Problem 4
 ```{r}
 heart_data = read_csv(file = "./HeartDisease.csv")
@@ -99,7 +100,7 @@ plot(new_heart$ERvisits, new_heart$lncost,
 abline(slr_heart, lwd = 2, col = 2)
 
 summary(slr_heart)
-b1 = summary(slr_heart)$coefficients[2,1]
+b1_simple = summary(slr_heart)$coefficients[2,1] #0.2267
 ```
 
 The regression equation is 	$\hat{Y}$ = 5.537 + 0.226**X~i~**  
@@ -110,20 +111,56 @@ Our estimated slope is 0.2267, meaning that for every 1 additional ER visit, we 
 ```{r}
 mlr_heart = lm(lncost ~ ERvisits + compbin, data = new_heart)
 summary(mlr_heart)
+b1_mult = summary(mlr_heart)$coefficients[2,1] #0.2046
 ```
 Using multiple linear regression, our regression equation is 	
 $\hat{Y}$ = 5.5211 + 0.2046**X~i1~** + 1.686**X~i2~**  
 where X~1~ = # ER visits, and X~2~ = whether patient experienced complications (reference category = 0, no complications)
 
-**i. testing compbin**
+
+**i. Testing for interaction**
+To test for interaction, we split the data by compbin = 0 or 1 and run a SLR of ln(cost) vs. ER visits on each dataset
 ```{r}
-anova(slr_heart) #SSR = 2459
-anova(mlr_heart) #SSR = 2347
+heart0 = new_heart %>% filter(compbin == 0) 
+heart1 = new_heart %>% filter(compbin == 1)
+hlr0 = lm(lncost ~ ERvisits, data = heart0)
+hlr1 = lm(lncost ~ ERvisits, data = heart1)
+
+plot(new_heart$ERvisits, new_heart$lncost, 
+     xlab = "# ER visits", 
+     ylab = "ln total cost")
+abline(hlr0, lwd = 2, col = 2) #red, b1 = 0.211
+abline(hlr1, lwd = 2, col = 3) #green, b1 = 0.112
+```
+
+For the 742 observations without complications (compbin = 0, in red),  $\hat{\beta}$~1~ = 0.211  
+For the remaining 43 observations with complications (compbin = 1),
+$\hat{\beta}$~1~ = 0.112  
+Thus I would say that complications _is_ indeed an effect modifier of the interaction between # ER visits and ln(total cost).  
+
+
+**ii. Testing for confounding**
+To test for confounding, we compare the SLR (ER visits as the only predictor of cost) and MLR (adding in/adjusting for complications)  
+```{r}
+(b1_mult-b1_simple)/b1_simple #decreases by 9.75%
+```
+In the simple linear regression, we found $\hat{\beta}$~1~ = 0.2267.  
+Adding in the compbin variable and doing a multiple linear regression, now $\hat{\beta}$~1~ = 0.2046, a 9.8% decrease  
+
+**iii. Compbin in the model**
+
+UNSURE IF I NEED THIS.............
+``` {r}
 anova(slr_heart, mlr_heart)
+112.84/2459.8     #partial R = 0.0459
+dfS = 785 - 2 - 1
+dfL = 785 - 1 - 1
+qf(0.95,dfL-dfS,dfL)
 ```
 Testing the effect of the complications variable (X~2~),  
 H~0~: $\beta$~2~ = 0   
 H~1~: $\beta$~2~ $\neq$ 0  
+F = MSR/MSE = 37.598 > F~dfL-dfS,dfL,0.05~ = 3.85, so we reject the null hypothesis and conclude that $\beta$~2~ is not equal to 0
 
 ### Part F - Final MLR
   
