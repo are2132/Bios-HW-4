@@ -1,7 +1,7 @@
 ---
 title: "Bios Methods Homework 4"
 author: "Alison Elgass"
-output: html_document
+output: pdf_document
 ---
 
 # Problems 1 & 2
@@ -108,9 +108,9 @@ summary(slr_heart)
 b1_simple = summary(slr_heart)$coefficients[2,1] #0.2267
 ```
 
-The regression equation is 	$\hat{Y}$ = 5.537 + 0.226**X~i~**  
+The regression equation is 	ln$\hat{Y}$ = 5.537 + 0.226**X~i~**  
 These results are highly significant, as a test of $\hat{\beta}$~1~ = 0 gives the test statistic 9.46 which is > t~785-2,1-0.95/2~ = `r qt(0.975,783)` so we conclude the slope is not 0.  
-Our estimated slope is 0.2267, meaning that for every 1 additional ER visit, we would predict an increase in ln(cost) of 0.2267 on average.  
+Our estimated slope is 0.2267, meaning that for every 1 additional ER visit, we would predict that total cost will increase by 100(e^0.2267^ - 1) = 25.4%.   
 
 ### Part E - MLR
 ```{r}
@@ -119,7 +119,7 @@ summary(mlr_heart)
 b1_mult = summary(mlr_heart)$coefficients[2,1] #0.2046
 ```
 Using multiple linear regression, our regression equation is 	
-$\hat{Y}$ = 5.5211 + 0.2046**X~i1~** + 1.686**X~i2~**  
+ln$\hat{Y}$ = 5.5211 + 0.2046**X~i1~** + 1.686**X~i2~**  
 where X~1~ = # ER visits, and X~2~ = whether patient experienced complications (reference category = 0, no complications)
 
 
@@ -131,7 +131,7 @@ summary(mlr_interact)
 -0.1 + c(-1,1)*(0.09483)*qt(0.975,781)
 ```
 This gives the model
-$\hat{Y}$ = 5.499 + 0.211**X~i1~** + 2.18**X~i2~** - 0.1**X~i1~X~i2~**  
+ln$\hat{Y}$ = 5.499 + 0.211**X~i1~** + 2.18**X~i2~** - 0.1**X~i1~X~i2~**  
   
 The interaction term = -0.1, with a t-value that is insignifcant.  
 Also the confidence interval would be -0.1 +- (0.09483)(t~0.975,781~) = 
@@ -179,7 +179,7 @@ We also calculate from the previous ANOVA tables the partial R^2^ from the margi
 In other words, about 4.6% of the variation in cost can be attributed to the complications factorm holding the ER visits variable fixed.  
   
 Because of this I would include compbin in our model, so  
-$\hat{Y}$ = 5.5211 + 0.2046**X~i1~** + 1.686**X~i2~**  
+ln$\hat{Y}$ = 5.5211 + 0.2046**X~i1~** + 1.686**X~i2~**  
   
 ### Part F - Final MLR
 ```{r}
@@ -187,7 +187,7 @@ mlr_big = lm(lncost ~ ERvisits + compbin + age + gender + duration,
                data = new_heart)
 summary(mlr_big)
 ```
-$\hat{Y}$ = 6.05 + 0.176**X~i1~** + 1.492**X~i2~** - 0.022**X~i3~** - 0.118**X~i4~** + 0.0055**X~i5~**  
+ln$\hat{Y}$ = 6.05 + 0.176**X~i1~** + 1.492**X~i2~** - 0.022**X~i3~** - 0.118**X~i4~** + 0.0055**X~i5~**  
   
 where  
 X~i1~ = # ER visits  
@@ -222,8 +222,9 @@ summary(mlr_final)
 ```
 
 Our **final model** then is  
-$\hat{Y}$ = 4.76 + 0.171**X~i1~** + 1.529**X~i2~** + 0.005**X~i3~**  
+ln$\hat{Y}$ = 4.76 + 0.171**X~i1~** + 1.529**X~i2~** + 0.005**X~i3~**  
   
-We conclude then that an additional ER visit increases ln(total cost) by 0.171, having complications increases it by 1.53, and an additional day of stay increases it by 0.005.
+Using the formula % change in Y = 100(e^$\beta$~1~^ - 1),  
+we conclude that an additional ER visit increases total cost by about 18%, having complications increases it by 361%, and an additional day of stay increases it by 0.54%.
 
 
