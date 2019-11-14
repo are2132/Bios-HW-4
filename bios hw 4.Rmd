@@ -92,7 +92,7 @@ new_heart = heart_data %>%
   )
   
 #str(new_heart$compbin)
-#new_heart$compbin
+#new_heart$compbin[79]
 ```
 
 ### Part D - SLR
@@ -182,7 +182,48 @@ Because of this I would include compbin in our model, so
 $\hat{Y}$ = 5.5211 + 0.2046**X~i1~** + 1.686**X~i2~**  
   
 ### Part F - Final MLR
-
+```{r}
+mlr_big = lm(lncost ~ ERvisits + compbin + age + gender + duration,
+               data = new_heart)
+summary(mlr_big)
+```
+$\hat{Y}$ = 6.05 + 0.176**X~i1~** + 1.492**X~i2~** - 0.022**X~i3~** - 0.118**X~i4~** + 0.0055**X~i5~**  
   
+where  
+X~i1~ = # ER visits  
+X~i2~ = complications (yes compared to no)  
+X~i3~ = age (years)  
+X~i4~ = gender (male compared to female)  
+X~i5~ = duration (days)  
+  
+The adjusted R^2^ is 0.2633, meaning 26.3% of the variation in cost can be attributed to these covariates as in this model.  
+  
+### Which model to use?
+```{r}
+a1 = lm(lncost ~ ERvisits + compbin + age, data = new_heart)
+a2 = lm(lncost ~ ERvisits + compbin + gender, data = new_heart)
+a3 = lm(lncost ~ ERvisits + compbin + duration, data = new_heart)
+tibble("Added Covariate" =
+         c("simple","compbin","age","gender","duration"),
+       "Adj R2" =
+         c(summary(slr_heart)$adj.r.squared,
+         summary(mlr_heart)$adj.r.squared,
+         summary(a1)$adj.r.squared, #age
+         summary(a2)$adj.r.squared, #gender
+         summary(a3)$adj.r.squared) #duration
+       ) %>% knitr::kable()
+```
+
+I would include the complications and duration covariates to adjust the relationship between cost vs. ER visits for these factors. These increase the adjusted R^2^ value. Gender and age do not appear to have a significan affect. It's interesting to note that in the large model, age comes back with a significant p-value (0.0103), however because it does not affect the R^2^ I would not include it.  
+
+```{r}
+mlr_final = lm(lncost ~ ERvisits + compbin + duration, data = new_heart)
+summary(mlr_final)
+```
+
+Our **final model** then is  
+$\hat{Y}$ = 4.76 + 0.171**X~i1~** + 1.529**X~i2~** + 0.005**X~i3~**  
+  
+We conclude then that an additional ER visit increases ln(total cost) by 0.171, having complications increases it by 1.53, and an additional day of stay increases it by 0.005.
 
 
