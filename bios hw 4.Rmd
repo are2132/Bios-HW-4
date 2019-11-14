@@ -32,7 +32,7 @@ nonhuman = brain_data %>% filter(species != "Homo sapiens")
 ### Part A - Regression
 ```{r}
 brain_reg = lm(glia_neuron_ratio ~ ln_brain_mass, data = nonhuman)
-summary(brain_reg)
+summary(brain_reg) 
 ```
 The regression equation is 	$\hat{Y}$ = 0.1637 + 0.18113**X~i~**
 
@@ -62,7 +62,12 @@ Since the human data point is somewhat of an outlier we should be cautious since
 # Problem 4
 ```{r}
 heart_data = read_csv(file = "./HeartDisease.csv")
-summary(heart_data) %>% knitr::kable()
+
+heart_data %>% 
+  count(gender)
+hist(heart_data$age)
+summary(heart_data$ERvisits)
+summary(heart_data$totalcost)
 ```
 
 ### Part A - Description
@@ -119,50 +124,65 @@ where X~1~ = # ER visits, and X~2~ = whether patient experienced complications (
 
 
 **i. Testing for interaction**
-To test for interaction, we split the data by compbin = 0 or 1 and run a SLR of ln(cost) vs. ER visits on each dataset
+To test for interaction, we run a MLR with an interaction term  
 ```{r}
-heart0 = new_heart %>% filter(compbin == 0) 
-heart1 = new_heart %>% filter(compbin == 1)
-hlr0 = lm(lncost ~ ERvisits, data = heart0)
-hlr1 = lm(lncost ~ ERvisits, data = heart1)
-
+mlr_interact = lm(lncost ~ ERvisits*compbin, data = new_heart)
+summary(mlr_interact)
+-0.1 + c(-1,1)*(0.09483)*qt(0.975,781)
+```
+This gives the model
+$\hat{Y}$ = 5.499 + 0.211**X~i1~** + 2.18**X~i2~** - 0.1**X~i1~X~i2~**  
+  
+The interaction term = -0.1, with a t-value that is insignifcant.  
+Also the confidence interval would be -0.1 +- (0.09483)(t~0.975,781~) = 
+(-0.286, 0.862) which includes zero, so we conclude there is not a significant interaction between ER visits and complication status.
+  
+We can also look at the graph of ln(cost) vs. # ER visits, stratified by compbin = 0 or 1, and the respective slopes of the regression lines
+``` {r}
+#make a plot of slr lines, stratified by compbin
 plot(new_heart$ERvisits, new_heart$lncost, 
      xlab = "# ER visits", 
      ylab = "ln total cost")
-abline(hlr0, lwd = 2, col = 2) #red, b1 = 0.211
-abline(hlr1, lwd = 2, col = 3) #green, b1 = 0.112
+heart0 = new_heart %>% filter(compbin == 0)
+heart1 = new_heart %>% filter(compbin == 1)
+lm(lncost ~ ERvisits, data = heart0) %>% abline(lwd = 2, col=2)
+lm(lncost ~ ERvisits, data = heart1) %>% abline(lwd = 2, col = 3)
 ```
 
 For the 742 observations without complications (compbin = 0, in red),  $\hat{\beta}$~1~ = 0.211  
 For the remaining 43 observations with complications (compbin = 1),
 $\hat{\beta}$~1~ = 0.112  
-Thus I would say that complications _is_ indeed an effect modifier of the interaction between # ER visits and ln(total cost).  
 
 
 **ii. Testing for confounding**
 To test for confounding, we compare the SLR (ER visits as the only predictor of cost) and MLR (adding in/adjusting for complications)  
 ```{r}
-(b1_mult-b1_simple)/b1_simple #decreases by 9.75%
+(b1_mult - b1_simple)/b1_simple #decreases by 9.75%
 ```
 In the simple linear regression, we found $\hat{\beta}$~1~ = 0.2267.  
-Adding in the compbin variable and doing a multiple linear regression, now $\hat{\beta}$~1~ = 0.2046, a 9.8% decrease  
+Adding in the compbin variable and doing a multiple linear regression, now $\hat{\beta}$~1~ = 0.2046, a 9.8% decrease, so I don't believe it is a significant confounder.
 
 **iii. Compbin in the model**
-
-UNSURE IF I NEED THIS.............
 ``` {r}
 anova(slr_heart, mlr_heart)
-112.84/2459.8     #partial R = 0.0459
-dfS = 785 - 2 - 1
-dfL = 785 - 1 - 1
-qf(0.95,dfL-dfS,dfL)
+partial_r2 = 112.84/2459.8  #= 0.0459
+dfS = 785 - 1 - 1
+dfL = 785 - 2 - 1
+qf(0.95,dfS-dfL,dfL)
 ```
 Testing the effect of the complications variable (X~2~),  
 H~0~: $\beta$~2~ = 0   
 H~1~: $\beta$~2~ $\neq$ 0  
-F = MSR/MSE = 37.598 > F~dfL-dfS,dfL,0.05~ = 3.85, so we reject the null hypothesis and conclude that $\beta$~2~ is not equal to 0
-
+F = MSR/MSE = 37.598 > F~1,782,0.05~ = 3.85, so we reject the null hypothesis and conclude that $\beta$~2~ is not equal to 0  
+  
+We also calculate from the previous ANOVA tables the partial R^2^ from the marginal contribution of compbin to be 112.84 / 2459.8 = 0.046.  
+In other words, about 4.6% of the variation in cost can be attributed to the complications factorm holding the ER visits variable fixed.  
+  
+Because of this I would include compbin in our model, so  
+$\hat{Y}$ = 5.5211 + 0.2046**X~i1~** + 1.686**X~i2~**  
+  
 ### Part F - Final MLR
+
   
 
 
